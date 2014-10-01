@@ -1,11 +1,7 @@
 package spark.utils;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * MIME-Type Parser
@@ -163,17 +159,20 @@ public class MimeParse {
      * @return the best match
      */
     public static String bestMatch(Collection<String> supported, String header) {
-        List<ParseResults> parseResults = new LinkedList<ParseResults>();
-        List<FitnessAndQuality> weightedMatches = new LinkedList<FitnessAndQuality>();
-        for (String r : header.split(",")) {
-            parseResults.add(parseMediaRange(r));
-        }
+        List<FitnessAndQuality> weightedMatches = new LinkedList<>();
 
-        for (String s : supported) {
-            FitnessAndQuality fitnessAndQuality = fitnessAndQualityParsed(s, parseResults);
-            fitnessAndQuality.mimeType = s;
-            weightedMatches.add(fitnessAndQuality);
-        }
+        List<ParseResults> parseResults = Arrays.stream(header.split(","))
+                                            .parallel()
+                                            .map(MimeParse::parseMediaRange)
+                                            .collect(Collectors.<ParseResults>toList());
+
+        supported.parallelStream()
+                .forEach(s -> {
+                    FitnessAndQuality fitnessAndQuality = fitnessAndQualityParsed(s, parseResults);
+                    fitnessAndQuality.mimeType = s;
+                    weightedMatches.add(fitnessAndQuality);
+                });
+
         Collections.sort(weightedMatches);
 
         FitnessAndQuality lastOne = weightedMatches.get(weightedMatches.size() - 1);

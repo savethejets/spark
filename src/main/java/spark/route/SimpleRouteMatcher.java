@@ -16,13 +16,10 @@
  */
 package spark.route;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import spark.utils.MimeParse;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Simple route matcher that is supposed to work exactly as Sinatra's
@@ -155,13 +152,9 @@ public class SimpleRouteMatcher {
     }
 
     private List<RouteEntry> findTargetsForRequestedRoute(HttpMethod httpMethod, String path) {
-        List<RouteEntry> matchSet = new ArrayList<RouteEntry>();
-        for (RouteEntry entry : routes) {
-            if (entry.matches(httpMethod, path)) {
-                matchSet.add(entry);
-            }
-        }
-        return matchSet;
+        return routes.parallelStream()
+                .filter(entry -> entry.matches(httpMethod, path))
+                .collect(Collectors.<RouteEntry>toList());
     }
 
     // TODO: I believe this feature has impacted performance. Optimization?
